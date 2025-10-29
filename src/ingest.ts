@@ -23,7 +23,7 @@ async function ingestPDF() {
 
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
-      chunkOverlap: 200,
+      chunkOverlap: 50,
     });
     const allSplits = await splitter.splitDocuments(docs);
 
@@ -42,6 +42,8 @@ async function ingestPDF() {
     );
 
     await vectorStore.addDocuments(allSplits);
+
+    console.log("✅ Ingestion complete!");
   } catch (error) {
     console.error("❌ Error during ingestion:", error);
     process.exit(1);

@@ -1,53 +1,43 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { QdrantVectorStore } from "@langchain/qdrant";
-import { OllamaEmbeddings } from "@langchain/ollama";
-import "dotenv/config";
+import { createVectorStore } from "./vectorstore.js";
+import { config } from "./config.js";
 
-async function ingestPDF() {
+async function ingestDocuments() {
   try {
-    if (
-      !process.env.QDRANT_URL ||
-      !process.env.QDRANT_COLLECTION_NAME ||
-      !process.env.OLLAMA_API_BASE_URL
-    ) {
-      throw new Error(
-        "Missing required environment variables. Check your .env file."
-      );
-    }
+    console.log("📄 Loading PDF documents...");
 
-    const pdfPath = "./skyline.pdf";
+    const pdfPath = "./documents/document.pdf";
+    const loader = new PDFLoader(pdfPath);
+    const docs = await loader.load();
 
-    const pdfLoader = new PDFLoader(pdfPath);
-    const docs = await pdfLoader.load();
+    console.log(`✅ Loaded ${docs.length} page(s)`);
 
+    console.log("✂️  Splitting documents into chunks...");
     const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
-      chunkOverlap: 50,
-    });
-    const allSplits = await splitter.splitDocuments(docs);
-
-    const embeddings = new OllamaEmbeddings({
-      model: "mxbai-embed-large",
-      baseUrl: process.env.OLLAMA_API_BASE_URL,
+      chunkSize: config.chunkSize,
+      chunkOverlap: config.chunkOverlap,
     });
 
-    const vectorStore = await QdrantVectorStore.fromDocuments(
-      allSplits,
-      embeddings,
-      {
-        url: process.env.QDRANT_URL,
-        collectionName: process.env.QDRANT_COLLECTION_NAME,
-      }
-    );
+    const splits = await splitter.splitDocuments(docs);
+    console.log(`✅ Created ${splits.length} chunks`);
 
-    await vectorStore.addDocuments(allSplits);
+    console.log("🤖 Creating embeddings and storing in Qdrant...");
+    const { embeddings } = await createVectorStore();
 
-    console.log("✅ Ingestion complete!");
+    await QdrantVectorStore.fromDocuments(splits, embeddings, {
+      url: config.qdrantUrl,
+      collectionName: config.qdrantCollection,
+    });
+
+    console.log("✅ Documents successfully ingested!");
+    console.log(`📊 Collection: ${config.qdrantCollection}`);
+    console.log(`📍 Qdrant URL: ${config.qdrantUrl}`);
   } catch (error) {
     console.error("❌ Error during ingestion:", error);
     process.exit(1);
   }
 }
 
-ingestPDF();
+ingestDocuments();

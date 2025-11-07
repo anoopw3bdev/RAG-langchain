@@ -21,7 +21,6 @@ async function ingestDocuments() {
     });
 
     const splits = await splitter.splitDocuments(docs);
-    console.log(`✅ Created ${splits.length} chunks`);
 
     console.log("🤖 Creating embeddings and storing in Qdrant...");
     const { embeddings } = await createVectorStore();

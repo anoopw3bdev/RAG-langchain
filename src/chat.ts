@@ -22,6 +22,7 @@ async function chat() {
     model: config.chatModel,
     baseUrl: config.ollamaBaseUrl,
     temperature: 0,
+    keepAlive: "5m",
   });
 
   const prompt = ChatPromptTemplate.fromTemplate(`

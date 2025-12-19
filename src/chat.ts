@@ -1,9 +1,14 @@
+import "./instrumentation";
+
 import { ChatOllama } from "@langchain/ollama";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
+import { CallbackHandler } from "@langfuse/langchain";
 import { getVectorStore } from "./vectorstore.js";
 import { config } from "./config.js";
 import * as readline from "readline";
+
+const langfuseHandler = new CallbackHandler();
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -60,7 +65,10 @@ Answer:`);
 
         try {
           console.log("\n🔍 Retrieving relevant documents...");
-          const relevantDocs = await retriever.invoke(input);
+
+          const relevantDocs = await retriever.invoke(input, {
+            callbacks: [langfuseHandler],
+          });
 
           console.log(
             `📚 Found ${relevantDocs.length} relevant document(s)\n`
@@ -72,10 +80,15 @@ Answer:`);
 
           console.log("🤖 Generating answer...\n");
 
-          const response = await chain.invoke({
-            context,
-            question: input,
-          });
+          const response = await chain.invoke(
+            {
+              context,
+              question: input,
+            },
+            {
+              callbacks: [langfuseHandler],
+            }
+          );
 
           console.log("💡 Answer:", response);
         } catch (error) {

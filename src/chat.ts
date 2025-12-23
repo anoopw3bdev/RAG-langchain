@@ -1,4 +1,6 @@
-import "./instrumentation";
+import "dotenv/config";
+
+import "./instrumentation.js";
 
 import { ChatOllama } from "@langchain/ollama";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
